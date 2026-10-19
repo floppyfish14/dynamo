@@ -385,7 +385,15 @@ class DynamoSglangPublisher:
             List of KvEventPublisher instances if KV event publishing is enabled,
             empty list otherwise.
         """
-        if self.dynamo_args.use_kv_events and not publishes_kv_events(self.server_args):
+        # With a state agent the raw stream is consumed externally; legacy
+        # normalization rejects KVCR-owned residency events. use_kv_events
+        # stays advertised.
+        state_agent = getattr(self.dynamo_args, "kvcr_state_agent_owner", None)
+        if (
+            state_agent is None
+            and self.dynamo_args.use_kv_events
+            and not publishes_kv_events(self.server_args)
+        ):
             logging.info(
                 "Non-leader node (node_rank=%s) shares the leader's single KV "
                 "rank slice; skipping KV event publishing so the router sees "
